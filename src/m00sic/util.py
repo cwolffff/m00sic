@@ -27,7 +27,7 @@ def get_chord(key, note, chord):
     Build a `chord` in a given `key`, starting from `note`.
 
     Returns:
-        list[int]
+        (list[int])
     """
     assert key in constants.NOTES_FOR_KEY, f"Invalid key: {key}."
     assert note in constants.NOTES_FOR_KEY[key], f"Note {note} not in key {key}."
