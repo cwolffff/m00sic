@@ -1,3 +1,3 @@
 # m00sic
 
-Automatically creating music tabula rasa!
+Automatically generating music without data!
