@@ -1,3 +1,4 @@
+import random
 import constants
 
 
@@ -33,3 +34,7 @@ def get_chord(key, note, chord):
     assert note in constants.NOTES_FOR_KEY[key], f"Note {note} not in key {key}."
     assert chord in constants.STEPS_FOR_CHORD
     return [note + i for i in constants.STEPS_FOR_CHORD[chord]]
+
+
+def get_random_key():
+    return random.choice(constants.KEYS)

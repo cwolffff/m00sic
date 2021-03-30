@@ -1,3 +1,22 @@
+KEYS = [
+    "CM",
+    "GM",
+    "DM",
+    "AM",
+    "EM",
+    "BM",
+    "FSM",
+    "CSM",
+    "Am",
+    "Em",
+    "Bm",
+    "FSm",
+    "CSm",
+    "GSm",
+    "DSm",
+    "ASm",
+]
+
 NOTES_FOR_KEY = {
     "CM": [
         21,
