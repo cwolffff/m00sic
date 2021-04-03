@@ -1,3 +1,9 @@
+"""
+A module for utility functions.
+
+"""
+
+
 import random
 
 from . import constants
@@ -6,13 +12,14 @@ from . import constants
 OFFSET_TO_INT = {"I": 0, "II": 1, "III": 2, "IV": 3, "V": 4, "VI": 5}
 
 
-def get_starting_note(key, offset):
+def get_starting_note(key: str, offset: int) -> int:
     """
     Find the tonic note for the specified key, add the offset,
     and return the result.
 
     Returns:
-        (int) The starting note for the specified key + offset.
+        The starting note for the specified key + offset.
+
     """
     assert (
         offset in OFFSET_TO_INT
@@ -24,12 +31,10 @@ def get_starting_note(key, offset):
     return notes[tonic_idx + offset_int]
 
 
-def get_chord(key, note, chord):
+def get_chord(key: str, note: int, chord: str) -> list[int]:
     """
-    Build a `chord` in a given `key`, starting from `note`.
+    Build a chord in a given key, starting from a specified note.
 
-    Returns:
-        (list[int])
     """
     assert key in constants.NOTES_FOR_KEY, f"Invalid key: {key}."
     assert note in constants.NOTES_FOR_KEY[key], f"Note {note} not in key {key}."
@@ -37,17 +42,17 @@ def get_chord(key, note, chord):
     return [note + i for i in constants.STEPS_FOR_CHORD[chord]]
 
 
-def get_chord_first_inversion(key, note, chord):
+def get_chord_first_inversion(key: str, note: int, chord: str) -> list[int]:
     notes = get_chord(key, note, chord)
     return notes[1:] + notes[:1]
 
 
-def get_chord_second_inversion(key, note, chord):
+def get_chord_second_inversion(key: str, note: int, chord: str) -> list[int]:
     notes = get_chord(key, note, chord)
     return notes[-1:] + notes[:-1]
 
 
-def build_chord_progression(key):
+def build_chord_progression(key: str) -> list[list[int]]:
     note1 = get_starting_note(key, "I")
     chord1 = get_chord(key=key, note=note1, chord="major_triad")
 
@@ -63,5 +68,5 @@ def build_chord_progression(key):
     return [chord1, chord2, chord3, chord4]
 
 
-def get_random_key():
+def get_random_key() -> str:
     return random.choice(constants.KEYS)

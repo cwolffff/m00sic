@@ -1,3 +1,8 @@
+"""
+A module for constants.
+
+"""
+
 KEYS = [
     "CM",
     "GM",
