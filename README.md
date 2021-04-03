@@ -31,15 +31,15 @@ python -m build
 python -m pip install .
 ```
 
+When developing, you should use `python -m pip install -e .` to install the package instead. For now, since we don't have an `environment.yaml` file, you need to install some dependencies manually:
+
+```bash
+python -m pip install magenta pyfluidsynth pretty_midi numba==0.48.0
+```
+
 If you'd like to run the Jupyter notebooks, you also need to install `ipykernel` and then create a new kernel specification by running
 
 ```bash
 conda install -c anaconda ipykernel
 python -m ipykernel install --user --name=magenta
-```
-
-For now, since we don't have an `environment.yaml` file, you need to install some dependencies manually:
-
-```bash
-python -m pip install magenta pyfluidsynth pretty_midi numba==0.48.0
 ```
