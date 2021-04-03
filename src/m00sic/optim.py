@@ -27,3 +27,13 @@ def local_search(value_fn: function) -> music_pb2.NoteSequence:
     
     """
     ...
+
+
+def get_candidates(note_seq: music_pb2.NoteSequence) -> list[music_pb2.NoteSequence]:
+    """
+    Create a list of candidate sequences given a start sequence. Every sequence is
+    exactly one note longer than the original sequence. This note should be in the same
+    key as the original sequence.
+
+    """
+    ...
