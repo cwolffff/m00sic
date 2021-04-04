@@ -11,6 +11,10 @@ from . import constants
 
 OFFSET_TO_INT = {"I": 0, "II": 1, "III": 2, "IV": 3, "V": 4, "VI": 5}
 
+def get_random_note_from_key(key):
+    
+    return random.choice(constants.NOTES_FOR_KEY[key])
+    
 
 def get_starting_note(key: str, offset: int) -> int:
     """
@@ -70,3 +74,7 @@ def build_chord_progression(key: str) -> list[list[int]]:
 
 def get_random_key() -> str:
     return random.choice(constants.KEYS)
+
+#returns the note in every octave 
+def all_octaves(note):
+    return [i*12+note for i in [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7] if i*12+note >= 21 and i*12+note <= 100]
