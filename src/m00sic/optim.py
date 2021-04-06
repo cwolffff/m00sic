@@ -52,6 +52,7 @@ def value_fn(key, chord_progression, note_sequence: music_pb2.NoteSequence) -> f
     ...
 
     # for all sub sequences starting from first 2 notes, call calculate_score_of_generated_note and sum up scores
+    # can't find class for NoteSequence from Magenta (IDE?)
 
 
 
@@ -68,7 +69,7 @@ def local_search(value_fn: function) -> music_pb2.NoteSequence:
     notes until we reach some desired sequence length.
     
     """
-    
+    # hold one object at a time, assess next note, add it to object 
     # randomly pick a key
     key = utils.get_random_key()
     

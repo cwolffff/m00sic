@@ -166,9 +166,12 @@ TONIC_NOTE_FOR_KEY = {
     "ASm": None,
 }
 
+#add more chords later
 STEPS_FOR_CHORD = {"major_triad": [0, 4, 7]}
 
 
+
+#constants for value function
 NOTE_IN_KEY_REWARD = 1
 NOTE_IN_CHORDS_REWARD = 1
 SUPER_CONSONANT_INTERVAL_REWARD = 3

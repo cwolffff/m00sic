@@ -11,6 +11,8 @@ from . import constants
 
 OFFSET_TO_INT = {"I": 0, "II": 1, "III": 2, "IV": 3, "V": 4, "VI": 5}
 
+
+# need to add get random note from input chord function 
 def get_random_note_from_key(key):
     
     return random.choice(constants.NOTES_FOR_KEY[key])
