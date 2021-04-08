@@ -16,7 +16,7 @@ def calculate_score_of_new_note(key, chord_progression, previous_notes, new_note
     # valid note for key
     if generated_note in notes_per_key[key]:
         score += constants.NOTE_IN_KEY_REWARD
-    else:
+    else
         score -= constants.NOTE_IN_KEY_REWARD
 
     # note in chord
@@ -65,7 +65,7 @@ def value_fn(key, chord_progression, note_sequence: music_pb2.NoteSequence) -> f
 
 
 
-def local_search(value_fn) -> music_pb2.NoteSequence:
+def local_search(value_fn: function) -> music_pb2.NoteSequence:
     """
     An optimization procedure that tries to find a note sequence with a high value,
     by greedily adding notes that result in the largest value.
@@ -79,16 +79,16 @@ def local_search(value_fn) -> music_pb2.NoteSequence:
     """
     # hold one object at a time, assess next note, add it to object 
     # randomly pick a key
-    key = util.get_random_key()
+    key = utils.get_random_key()
     
     # get a chord progression
-    chord_progression = util.build_chord_progression(key)
+    chord_progression = utils.build_chord_progression(key)
     
     desired_length = 10
     best_note_seq = music_pb2.NoteSequence()
     
     # randomly pick first note
-    best_note_seq.notes.add(pitch=util.get_random_note_from_key(key), start_time=0.0, end_time=1.0, velocity=80)
+    best_note_seq.notes.add(pitch=utils.get_random_note_from_key(key), start_time=0.0, end_time=1.0, velocity=80)
     
     for i in range(1, desired_length):
         
@@ -114,7 +114,7 @@ def local_search(value_fn) -> music_pb2.NoteSequence:
         
 
 
-def get_candidates(note_seq: music_pb2.NoteSequence) -> list:
+def get_candidates(note_seq: music_pb2.NoteSequence) -> list[music_pb2.NoteSequence]:
     """
     Create a list of candidate sequences given a start sequence. Every sequence is
     exactly one note longer than the original sequence. This note should be in the same
