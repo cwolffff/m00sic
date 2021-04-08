@@ -36,8 +36,11 @@ def get_starting_note(key: str, offset: int) -> int:
     offset_int = OFFSET_TO_INT[offset]
     return notes[tonic_idx + offset_int]
 
+def extract_pitches(notesequence):
 
-def get_chord(key: str, note: int, chord: str) -> list[int]:
+    return [note.pitch for note in notesequence.notes]
+
+def get_chord(key: str, note: int, chord: str) -> list:
     """
     Build a chord in a given key, starting from a specified note.
 
@@ -48,17 +51,17 @@ def get_chord(key: str, note: int, chord: str) -> list[int]:
     return [note + i for i in constants.STEPS_FOR_CHORD[chord]]
 
 
-def get_chord_first_inversion(key: str, note: int, chord: str) -> list[int]:
+def get_chord_first_inversion(key: str, note: int, chord: str) -> list:
     notes = get_chord(key, note, chord)
     return notes[1:] + notes[:1]
 
 
-def get_chord_second_inversion(key: str, note: int, chord: str) -> list[int]:
+def get_chord_second_inversion(key: str, note: int, chord: str) -> list:
     notes = get_chord(key, note, chord)
     return notes[-1:] + notes[:-1]
 
 
-def build_chord_progression(key: str) -> list[list[int]]:
+def build_chord_progression(key: str) -> list:
     note1 = get_starting_note(key, "I")
     chord1 = get_chord(key=key, note=note1, chord="major_triad")
 

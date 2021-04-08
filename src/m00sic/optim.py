@@ -8,16 +8,15 @@ from . import util
 from . import constants
 
 #think about input note_sequence
-def calculate_score_of_new_note(key, chord_progression, note_sequence, new_note):
+def calculate_score_of_new_note(key, chord_progression, previous_notes, new_note):
 
     score = 0
-    previous_notes = note_sequence pitches
     generated_note = new_note
 
     # valid note for key
     if generated_note in notes_per_key[key]:
         score += constants.NOTE_IN_KEY_REWARD
-    else
+    else:
         score -= constants.NOTE_IN_KEY_REWARD
 
     # note in chord
@@ -53,11 +52,20 @@ def value_fn(key, chord_progression, note_sequence: music_pb2.NoteSequence) -> f
 
     # for all sub sequences starting from first 2 notes, call calculate_score_of_generated_note and sum up scores
     # can't find class for NoteSequence from Magenta (IDE?)
+    
+    score = 0
+    
+    pitches = util.extract_pitches(note_sequence)
+    
+    for end, pitch in enumerate(pitches[1:], 1):
+    
+        score += calculate_score_of_new_note(key, chord_progression, pitches[:end], pitch)
+    
+    return score
 
 
 
-
-def local_search(value_fn: function) -> music_pb2.NoteSequence:
+def local_search(value_fn) -> music_pb2.NoteSequence:
     """
     An optimization procedure that tries to find a note sequence with a high value,
     by greedily adding notes that result in the largest value.
@@ -71,16 +79,16 @@ def local_search(value_fn: function) -> music_pb2.NoteSequence:
     """
     # hold one object at a time, assess next note, add it to object 
     # randomly pick a key
-    key = utils.get_random_key()
+    key = util.get_random_key()
     
     # get a chord progression
-    chord_progression = utils.build_chord_progression(key)
+    chord_progression = util.build_chord_progression(key)
     
     desired_length = 10
     best_note_seq = music_pb2.NoteSequence()
     
     # randomly pick first note
-    best_note_seq.notes.add(pitch=utils.get_random_note_from_key(key), start_time=0.0, end_time=1.0, velocity=80)
+    best_note_seq.notes.add(pitch=util.get_random_note_from_key(key), start_time=0.0, end_time=1.0, velocity=80)
     
     for i in range(1, desired_length):
         
@@ -90,7 +98,7 @@ def local_search(value_fn: function) -> music_pb2.NoteSequence:
         for new_note in constants.NOTES_FOR_KEY[key]:
             
             # for each note, calculate its score. 
-            score = calculate_score_of_new_note(key, chord_progression, best_note_seq, new_note)
+            score = value_fn(key, chord_progression, util.extract_pitches(best_note_seq), new_note)
             
             new_note_scores.setdefault(score,[]).append(new_note)
             
@@ -101,12 +109,12 @@ def local_search(value_fn: function) -> music_pb2.NoteSequence:
         
         best_note_seq.notes.add(pitch=selected_note, start_time=i*1.0, end_time=i*1.0+1.0, velocity=80)
             
-            
+    return best_note_seq
         
         
 
 
-def get_candidates(note_seq: music_pb2.NoteSequence) -> list[music_pb2.NoteSequence]:
+def get_candidates(note_seq: music_pb2.NoteSequence) -> list:
     """
     Create a list of candidate sequences given a start sequence. Every sequence is
     exactly one note longer than the original sequence. This note should be in the same
