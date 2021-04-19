@@ -2,7 +2,7 @@
 A module for optimization algorithms.
 
 """
-
+import random
 from note_seq.protobuf import music_pb2
 from . import util
 from . import constants
@@ -14,9 +14,9 @@ def calculate_score_of_new_note(key, chord_progression, previous_notes, new_note
     generated_note = new_note
 
     # valid note for key
-    if generated_note in notes_per_key[key]:
+    if generated_note in constants.NOTES_FOR_KEY[key]:
         score += constants.NOTE_IN_KEY_REWARD
-    else
+    else:
         score -= constants.NOTE_IN_KEY_REWARD
 
     # note in chord
@@ -65,7 +65,7 @@ def value_fn(key, chord_progression, note_sequence: music_pb2.NoteSequence) -> f
 
 
 
-def local_search(value_fn: function) -> music_pb2.NoteSequence:
+def local_search(value_fn, include_chords=False) -> music_pb2.NoteSequence:
     """
     An optimization procedure that tries to find a note sequence with a high value,
     by greedily adding notes that result in the largest value.
@@ -79,16 +79,21 @@ def local_search(value_fn: function) -> music_pb2.NoteSequence:
     """
     # hold one object at a time, assess next note, add it to object 
     # randomly pick a key
-    key = utils.get_random_key()
+    key = util.get_random_key()
     
-    # get a chord progression
-    chord_progression = utils.build_chord_progression(key)
+    # get a chord progression. list of list of pitches [[1,2,3],[1,2,3],...]
+    chord_progression = util.build_chord_progression(key)
     
-    desired_length = 10
+    desired_length = 12
     best_note_seq = music_pb2.NoteSequence()
     
     # randomly pick first note
-    best_note_seq.notes.add(pitch=utils.get_random_note_from_key(key), start_time=0.0, end_time=1.0, velocity=80)
+    best_note_seq.notes.add(pitch=util.get_random_note_from_key(key), start_time=0.0, end_time=1.0, velocity=80)
+    
+    # Add first chord if necessary
+    if include_chords:
+        for pitch in chord_progression[0]:
+                best_note_seq.notes.add(pitch=pitch, start_time=0.0, end_time=1.0, velocity=80)
     
     for i in range(1, desired_length):
         
@@ -108,6 +113,11 @@ def local_search(value_fn: function) -> music_pb2.NoteSequence:
         selected_note = random.choice(new_note_scores[max(new_note_scores.keys())])
         
         best_note_seq.notes.add(pitch=selected_note, start_time=i*1.0, end_time=i*1.0+1.0, velocity=80)
+            
+        if include_chords:
+            chord = chord_progression[i%4]
+            for pitch in chord:
+                best_note_seq.notes.add(pitch=pitch, start_time=i*1.0, end_time=i*1.0+1.0, velocity=80)
             
     return best_note_seq
         

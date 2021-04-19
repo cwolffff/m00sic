@@ -13,6 +13,7 @@ OFFSET_TO_INT = {"I": 0, "II": 1, "III": 2, "IV": 3, "V": 4, "VI": 5}
 
 
 # need to add get random note from input chord function 
+
 def get_random_note_from_key(key):
     
     return random.choice(constants.NOTES_FOR_KEY[key])
@@ -52,8 +53,8 @@ def get_chord(key: str, note: int, chord: str) -> list[int]:
 
 
 
-# tried to run, list[int] is giving me an error, do I need a diff version of python? 
-def get_chord_first_inversion(key: str, note: int, chord: str) -> list[int]:
+# to run, needed to remove [int]
+def get_chord_first_inversion(key: str, note: int, chord: str) -> list:
     notes = get_chord(key, note, chord)
     return notes[1:] + notes[:1]
 
