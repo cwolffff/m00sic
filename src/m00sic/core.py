@@ -98,6 +98,13 @@ class Symbol:
         new_name = SYMBOL_NAMES[new_index][0]
         return Symbol(new_name)
 
+    def __sub__(self, other):
+        if not isinstance(other, int):
+            raise TypeError(
+                f"Can only subtract integers from Symbol object, not type {type(other)}."
+            )
+        return self.__add__(-other)
+
 
 class Note:
     def __init__(self, name):
@@ -139,6 +146,13 @@ class Note:
             )
         return Note.from_midi_num(new_midi_num)
 
+    def __sub__(self, other):
+        if not isinstance(other, int):
+            raise TypeError(
+                f"Can only subtract integers from Note object, not type {type(other)}."
+            )
+        return self.__add__(-other)
+
     def __eq__(self, other):
         if not isinstance(other, Note):
             return False
@@ -151,6 +165,32 @@ class Note:
 
     def __repr__(self):
         return f"{self.__class__.__name__}('{self.name}')"
+
+
+@dataclass
+class PatternSpec:
+    index: int
+    duration: float
+    transpose: int = 0
+    velocity: int = 80
+
+
+class Chord:
+    def __init__(self, notes):
+        self.notes = notes
+
+    # TODO Maybe make ArrangedNote class to replace (note, dur, vel) tuples.
+    def arrange(self, pattern: List[PatternSpec]):
+        arrangement = []
+        for note_spec in pattern:
+            note = self.notes[note_spec.index] + note_spec.transpose * NOTES_PER_OCTAVE
+            duration = note_spec.duration
+            velocity = note_spec.velocity
+            arrangement.append((note, duration, velocity))
+        return arrangement
+
+    def __repr__(self):
+        return repr(self.notes)
 
 
 if __name__ == "__main__":
