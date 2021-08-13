@@ -1,20 +1,35 @@
 """Core classes and methods.
 
 Nomenclature:
-- A note SYMBOL is a combination of a letter and, optionally, an accidental, e.g. 'A#'.
-- A note NAME is a note symbol followed by an octave, e.g. 'A#4'.
-- The RANK of a note is an integer that indicates its position within its octave. It's
+- A PitchClass is a combination of a letter and, optionally, an accidental, e.g. 'A#'.
+- A Note is a note symbol followed by an octave, e.g. 'A#4'.
+- A Chord is a list of Notes.
+- The rank of a note is an integer that indicates its position within its octave. It's
 always between 0 and 11.
 
 """
 
 
+from __future__ import annotations
+
+import abc
+import dataclasses
 import re
-from dataclasses import dataclass, field
+from enum import Enum, auto
 from typing import List
 
+from note_seq.protobuf import music_pb2
 
-SYMBOL_NAMES = [
+
+# Durations.
+W = WHOLE = 1
+H = HALF = 1 / 2
+Q = QUARTER = 1 / 4
+E = EIGHTH = 1 / 8
+S = SIXTEENTH = 1 / 16
+
+
+PITCH_CLASSES = [
     ("C"),
     ("C#", "Db"),
     ("D"),
@@ -28,13 +43,15 @@ SYMBOL_NAMES = [
     ("A#", "Bb"),
     ("B"),
 ]
-VALID_SYMBOL_NAMES = [
-    symbol for symbol_tuple in SYMBOL_NAMES for symbol in symbol_tuple
-]
-_SYMBOL_NAME_TO_RANK = {
-    symbol: rank
-    for rank, symbol_tuple in enumerate(SYMBOL_NAMES)
-    for symbol in symbol_tuple
+VALID_PITCH_CLASSES = {
+    pitch_class
+    for pitch_class_tuple in PITCH_CLASSES
+    for pitch_class in pitch_class_tuple
+}
+_PITCH_CLASS_TO_RANK = {
+    pitch_class: rank
+    for rank, pitch_class_tuple in enumerate(PITCH_CLASSES)
+    for pitch_class in pitch_class_tuple
 }
 
 
@@ -48,66 +65,63 @@ HIGHEST_PIANO_OCTAVE = 8
 NOTES_PER_OCTAVE = 12
 
 
-def _get_octave(midi_num):
+def _get_octave(midi_num: int):
     return (midi_num - _C0_MIDI_NUM) // NOTES_PER_OCTAVE
 
 
-def _get_rank(midi_num):
+def _get_rank(midi_num: int):
     return (midi_num - _C0_MIDI_NUM) % NOTES_PER_OCTAVE
 
 
-def _to_note_name(midi_num):
+def _to_note_name(midi_num: int):
     assert midi_num >= _C0_MIDI_NUM
     octave = _get_octave(midi_num)
     rank = _get_rank(midi_num)
-    symbol_names = SYMBOL_NAMES[rank]
+    symbol_names = PITCH_CLASSES[rank]
     return f"{symbol_names[0]}{octave}"
 
 
-def _to_midi_num(symbol_name, octave):
-    rank = _SYMBOL_NAME_TO_RANK[symbol_name]
+def _to_midi_num(symbol_name: str, octave: int):
+    rank = _PITCH_CLASS_TO_RANK[symbol_name]
     return _C0_MIDI_NUM + NOTES_PER_OCTAVE * octave + rank
 
 
-def _get_trailing_number(s):
+def _get_trailing_number(s: str):
     m = re.search(r"\d+$", s)
     return m.group() if m else None
 
 
-@dataclass
-class Symbol:
-    """A musical symbol, e.g. 'G#' or 'B'."""
+@dataclasses.dataclass
+class PitchClass:
+    """A musical pitch class, e.g. 'G#' or 'B'."""
 
     name: str
-    index: int = field(init=False)
+    index: int = dataclasses.field(init=False)
 
     def __post_init__(self):
-        assert self.name in VALID_SYMBOL_NAMES
-        for i, symbol_tuple in enumerate(SYMBOL_NAMES):
-            if self.name in symbol_tuple:
-                self.index = i
-                return
-        raise ValueError(f"Invalid symbol name: {self.name}")
+        assert self.name in VALID_PITCH_CLASSES
+        self.index = _PITCH_CLASS_TO_RANK[self.name]
 
-    def __add__(self, other):
+    def __add__(self, other: object) -> PitchClass:
         if not isinstance(other, int):
             raise TypeError(
-                f"Can only add integers to Symbol object, not type {type(other)}."
+                f"Can only add integers to PitchClass object, not type {type(other)}."
             )
         new_index = (self.index + other) % NOTES_PER_OCTAVE
-        new_name = SYMBOL_NAMES[new_index][0]
-        return Symbol(new_name)
+        new_name = PITCH_CLASSES[new_index][0]
+        return PitchClass(new_name)
 
-    def __sub__(self, other):
+    def __sub__(self, other: object) -> PitchClass:
         if not isinstance(other, int):
             raise TypeError(
-                f"Can only subtract integers from Symbol object, not type {type(other)}."
+                f"Can only subtract integers from PitchClass object, "
+                f"not type {type(other)}."
             )
         return self.__add__(-other)
 
 
 class Note:
-    def __init__(self, name):
+    def __init__(self, name: str):
         """
         Args:
             name: e.g. 'A5', 'C#4', or 'Gb3'.
@@ -120,21 +134,21 @@ class Note:
         assert LOWEST_PIANO_OCTAVE <= octave <= HIGHEST_PIANO_OCTAVE
 
         # Check if note name is valid.
-        symbol_name = name[:-octave_nchar]
-        assert symbol_name in VALID_SYMBOL_NAMES
+        pitch_class = name[:-octave_nchar]
+        assert pitch_class in VALID_PITCH_CLASSES
 
         self.name = name
-        self.symbol = Symbol(symbol_name)
+        self.pitch_class = PitchClass(pitch_class)
         self.octave = octave
-        self.midi_num = _to_midi_num(symbol_name, octave)
+        self.midi_num = _to_midi_num(pitch_class, octave)
 
     @classmethod
-    def from_midi_num(cls, midi_num):
+    def from_midi_num(cls, midi_num: int) -> Note:
         assert LOWEST_PIANO_MIDI_NUM <= midi_num <= HIGHEST_PIANO_MIDI_NUM
         name = _to_note_name(midi_num)
         return cls(name)
 
-    def __add__(self, other):
+    def __add__(self, other: object) -> Note:
         if not isinstance(other, int):
             raise TypeError(
                 f"Can only add integers to Note object, not type {type(other)}."
@@ -146,51 +160,122 @@ class Note:
             )
         return Note.from_midi_num(new_midi_num)
 
-    def __sub__(self, other):
+    def __sub__(self, other: object) -> Note:
         if not isinstance(other, int):
             raise TypeError(
                 f"Can only subtract integers from Note object, not type {type(other)}."
             )
         return self.__add__(-other)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Note):
             return False
         return (
             self.name == other.name
-            and self.symbol == other.symbol
+            and self.pitch_class == other.pitch_class
             and self.octave == other.octave
             and self.midi_num == other.midi_num
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}('{self.name}')"
 
 
-@dataclass
-class PatternSpec:
-    index: int
-    duration: float
-    transpose: int = 0
-    velocity: int = 80
-
-
+@dataclasses.dataclass
 class Chord:
-    def __init__(self, notes):
-        self.notes = notes
 
-    # TODO Maybe make ArrangedNote class to replace (note, dur, vel) tuples.
-    def arrange(self, pattern: List[PatternSpec]):
-        arrangement = []
-        for note_spec in pattern:
-            note = self.notes[note_spec.index] + note_spec.transpose * NOTES_PER_OCTAVE
-            duration = note_spec.duration
-            velocity = note_spec.velocity
-            arrangement.append((note, duration, velocity))
-        return arrangement
+    notes: List[Note]
+
+    # TODO Add __add__ and __sub__
+
+
+# TODO Fix pitch classes in __repr__. The same letter shouldn't appear more than once.
+class Scale(abc.ABC):
+    def __init__(self, name):
+        assert name in VALID_PITCH_CLASSES
+        self.name = name
+
+    @property
+    @abc.abstractmethod
+    def intervals(self):
+        ...
+
+    @property
+    def pitch_classes(self):
+        return [PitchClass(self.name) + i for i in self.intervals]
+
+    def _get_interval(self, degree):
+        offset = 0
+        while degree > len(self.intervals):
+            offset += NOTES_PER_OCTAVE
+            degree -= len(self.intervals)
+        return self.intervals[degree - 1] + offset
+
+    def get_chord(self, positions, degree=1, octave=4, inversion=0) -> Chord:
+        assert degree >= 1
+        scale_starting_note = Note(f"{self.name}{octave}")
+        notes = [
+            scale_starting_note + self._get_interval(degree + position - 1)
+            for position in positions
+        ]
+        for _ in range(inversion):
+            notes = notes[1:] + [notes[0] + NOTES_PER_OCTAVE]
+        return Chord(notes)
+
+    def get_triad(self, degree, octave=4, inversion=0) -> Chord:
+        return self.get_chord(
+            positions=[1, 3, 5], degree=degree, octave=octave, inversion=inversion
+        )
+
+    def get_seventh(self, degree, octave=4, inversion=0) -> Chord:
+        return self.get_chord(
+            positions=[1, 3, 5, 7], degree=degree, octave=octave, inversion=inversion
+        )
+
+    def get_ninth(self, degree, octave=4, inversion=0) -> Chord:
+        return self.get_chord(
+            positions=[1, 3, 5, 7, 9], degree=degree, octave=octave, inversion=inversion
+        )
+
+    def get_eleventh(self, degree, octave=4, inversion=0) -> Chord:
+        return self.get_chord(
+            positions=[1, 3, 5, 7, 9, 11],
+            degree=degree,
+            octave=octave,
+            inversion=inversion,
+        )
+
+    def get_thirteenth(self, degree, octave=4, inversion=0) -> Chord:
+        return self.get_chord(
+            positions=[1, 3, 5, 7, 9, 11, 13],
+            degree=degree,
+            octave=octave,
+            inversion=inversion,
+        )
 
     def __repr__(self):
-        return repr(self.notes)
+        pitch_class_str = ", ".join(
+            [pitch_class.name for pitch_class in self.pitch_classes]
+        )
+        return f"{self.__class__.__name__}({pitch_class_str})"
+
+
+class MajorScale(Scale):
+
+    _intervals = [0, 2, 4, 5, 7, 9, 11]
+
+    @property
+    def intervals(self):
+        return self._intervals
+
+
+class MinorScale(Scale):
+
+    _intervals = [0, 2, 3, 5, 7, 8, 10]
+
+    @property
+    def intervals(self):
+        return self._intervals
 
 
 if __name__ == "__main__":
@@ -211,10 +296,12 @@ if __name__ == "__main__":
     assert _to_midi_num("Bb", 4) == 70
     assert _to_midi_num("C", 8) == 108
 
-    assert Symbol("G").index == 7
-    assert Symbol("C") + 3 == Symbol("D#")
-    assert Symbol("A") + 5 == Symbol("D")
-    assert Symbol("D#") != Symbol("Eb")
+    assert PitchClass("G").index == 7
+    assert PitchClass("C") + 3 == PitchClass("D#")
+    assert PitchClass("A") + 5 == PitchClass("D")
+    assert PitchClass("D#") != PitchClass("Eb")
 
     assert Note.from_midi_num(69) == Note("A4")
     assert Note("A4") + 1 == Note("A#4")
+
+    assert str(MajorScale("C")) == "MajorScale(C, D, E, F, G, A, B)"

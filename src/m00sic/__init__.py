@@ -1,1 +1,1 @@
-from .core import Note, Symbol
+from .core import Note, PitchClass
