@@ -1,6 +1,6 @@
 import dataclasses
 import math
-from typing import List
+from typing import List, Union
 
 from note_seq.protobuf import music_pb2
 
@@ -11,16 +11,61 @@ from m00sic.core import NOTES_PER_OCTAVE
 
 # A token to indicate that a note should be starting after the previous note.
 # Generated using uuid.uuid1().
-AFTER = "ec79a478-fbf2-11eb-9430-acbc32aea1ef"
+AFTER = 87178770498530249949750886040005943791
+PAUSE = 92888580960918501375582155840183771631
 
 
 @dataclasses.dataclass
 class PatternSpec:
+    """A specification used to define patterns.
+
+    Patterns are lists of PatternSpecs and indicate how a given chord should be
+    arranged. For example,
+
+    >> pattern = [
+        PS(index=0, start_time=0, duration=EIGHTH),
+        PS(index=1, start_time=AFTER, duration=EIGHTH),
+        PS(index=2, start_time=AFTER, duration=QUARTER),
+    ]
+
+    indicates that the first note (index 0) should be played for an EIGHTH duration,
+    then the second note (index 1) should be played for an EIGHTH duration, and finally
+    the third note (index 2) should be played for a QUARTER duration.
+    """
+
     index: int
     start_time: float
     duration: float
-    start_margin: float = 0.0
     end_margin: float = 0.0
+    start_margin: float = 0.0
+    transpose: int = 0
+    velocity: int = 80
+
+
+@dataclasses.dataclass
+class NoteSpec:
+    """A specification for how a specific note should be played."""
+
+    note: Union[Note, str]
+    duration: float
+    end_margin: float = 0.0
+    start_margin: float = 0.0
+    transpose: int = 0
+    velocity: int = 80
+
+    def __post_init__(self):
+        if isinstance(self.note, str):
+            self.note = Note(self.note)
+
+
+@dataclasses.dataclass
+class ChordSpec:
+    """A specification for how a specific chord should be played."""
+
+    chord: Chord
+    duration: float
+    end_margin: float = 0.0
+    start_margin: float = 0.0
     transpose: int = 0
     velocity: int = 80
 
@@ -42,15 +87,34 @@ def arrange_chord(chord: Chord, pattern: List[PatternSpec]) -> music_pb2.NoteSeq
             end_time=end_time - ps.end_margin,
             velocity=ps.velocity,
         )
-        t = start_time + ps.duration
+        t = end_time
         t_max = max(t, t_max)
     seq.total_time = t_max
     return seq
 
 
-def arrange_melody():
-    # TODO
-    ...
+def arrange_melody(
+    note_or_chord_specs: Union[NoteSpec, ChordSpec]
+) -> music_pb2.NoteSequence:
+    """Arrange a list of NoteSpec or ChordSpec objects into a melody."""
+    seq = music_pb2.NoteSequence()
+    t = 0.0
+    for spec in note_or_chord_specs:
+        if spec.note != PAUSE:
+            total_margin = spec.start_margin + spec.end_margin
+            assert spec.duration > total_margin
+            note = spec.note + spec.transpose * NOTES_PER_OCTAVE
+            start_time = t
+            end_time = start_time + spec.duration
+            seq.notes.add(
+                pitch=note.midi_num,
+                start_time=start_time + spec.start_margin,
+                end_time=end_time - spec.end_margin,
+                velocity=spec.velocity,
+            )
+        t += spec.duration
+    seq.total_time = t
+    return seq
 
 
 def concat_sequences(*seqs):
