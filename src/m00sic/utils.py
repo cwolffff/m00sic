@@ -5,12 +5,14 @@ from typing import List, Union
 from note_seq.protobuf import music_pb2
 
 from m00sic.core import Chord
+from m00sic.core import MajorKey
 from m00sic.core import Note
 from m00sic.core import NOTES_PER_OCTAVE
+from m00sic.core import Key
 
 
 # A token to indicate that a note should be starting after the previous note.
-# Generated using uuid.uuid1().
+# Generated using uuid.uuid1().int.
 AFTER = 87178770498530249949750886040005943791
 PAUSE = 92888580960918501375582155840183771631
 
@@ -44,9 +46,14 @@ class PatternSpec:
 
 @dataclasses.dataclass
 class NoteSpec:
-    """A specification for how a specific note should be played."""
+    """A specification for how a specific note should be played.
 
-    note: Union[Note, str]
+    If note is an int, it should represent the position within a key. That way, melodies
+    can also be written as sequences of integers when used with arrange_melody. These
+    integers should use ONE-INDEXING.
+    """
+
+    note: Union[Note, str, int]
     duration: float
     end_margin: float = 0.0
     start_margin: float = 0.0
@@ -93,26 +100,61 @@ def arrange_chord(chord: Chord, pattern: List[PatternSpec]) -> music_pb2.NoteSeq
     return seq
 
 
+# def arrange_melody(
+#     note_or_chord_specs: Union[NoteSpec, ChordSpec], key: Key = None, octave: int = None
+# ) -> music_pb2.NoteSequence:
+#     """Arrange a list of NoteSpec or ChordSpec objects into a melody.
+
+#     If the NoteSpec objects use integers to specify notes, then a key and octave must be
+#     given.
+#     """
+#     seq = music_pb2.NoteSequence()
+#     t = 0.0
+#     for spec in note_or_chord_specs:
+#         if spec.note != PAUSE:
+#             total_margin = spec.start_margin + spec.end_margin
+#             assert spec.duration > total_margin
+#             if isinstance(spec.note, int):
+#                 assert key is not None and octave is not None
+#                 note = key.get_note(spec.note, octave=octave)
+#             else:
+#                 note = spec.note
+#             note += spec.transpose * NOTES_PER_OCTAVE
+#             start_time = t
+#             end_time = start_time + spec.duration
+#             seq.notes.add(
+#                 pitch=note.midi_num,
+#                 start_time=start_time + spec.start_margin,
+#                 end_time=end_time - spec.end_margin,
+#                 velocity=spec.velocity,
+#             )
+#         t += spec.duration
+#     seq.total_time = t
+#     return seq
+
+
 def arrange_melody(
-    note_or_chord_specs: Union[NoteSpec, ChordSpec]
+    degrees: List[int], rhythm: List[float], key: Key = MajorKey("C"), octave: int = 4
 ) -> music_pb2.NoteSequence:
-    """Arrange a list of NoteSpec or ChordSpec objects into a melody."""
+    """Create a simple diatonic melody.
+
+    Note: The `degrees` are ZERO-INDEXED, not one-indexed.
+
+    TODO Add `velocities` arg.
+    """
+    assert len(degrees) == len(rhythm)
     seq = music_pb2.NoteSequence()
     t = 0.0
-    for spec in note_or_chord_specs:
-        if spec.note != PAUSE:
-            total_margin = spec.start_margin + spec.end_margin
-            assert spec.duration > total_margin
-            note = spec.note + spec.transpose * NOTES_PER_OCTAVE
-            start_time = t
-            end_time = start_time + spec.duration
+    for degree, duration in zip(degrees, rhythm):
+        if degree != PAUSE:
+            note = key.get_note(degree=degree, octave=octave)
             seq.notes.add(
                 pitch=note.midi_num,
-                start_time=start_time + spec.start_margin,
-                end_time=end_time - spec.end_margin,
-                velocity=spec.velocity,
+                start_time=t,
+                end_time=t + duration,
+                velocity=80,
             )
-        t += spec.duration
+        t += duration
     seq.total_time = t
     return seq
 

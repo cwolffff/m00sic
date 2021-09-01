@@ -190,7 +190,7 @@ class Chord:
 
 
 # TODO Fix pitch classes in __repr__. The same letter shouldn't appear more than once.
-class Scale(abc.ABC):
+class Key(abc.ABC):
     def __init__(self, name):
         assert name in VALID_PITCH_CLASSES
         self.name = name
@@ -206,40 +206,49 @@ class Scale(abc.ABC):
 
     def _get_interval(self, degree):
         offset = 0
-        while degree > len(self.intervals):
-            offset += NOTES_PER_OCTAVE
-            degree -= len(self.intervals)
-        return self.intervals[degree - 1] + offset
+        if degree >= 0:
+            while degree >= len(self.intervals):
+                offset += NOTES_PER_OCTAVE
+                degree -= len(self.intervals)
+        else:
+            while degree < 0:
+                offset -= NOTES_PER_OCTAVE
+                degree += len(self.intervals)
+        return self.intervals[degree] + offset
 
-    def get_chord(self, positions, degree=1, octave=4, inversion=0) -> Chord:
-        assert degree >= 1
+    def get_note(self, degree, octave=4) -> Note:
         scale_starting_note = Note(f"{self.name}{octave}")
+        return scale_starting_note + self._get_interval(degree)
+
+    def get_chord(self, positions, degree=0, octave=4, inversion=0) -> Chord:
         notes = [
-            scale_starting_note + self._get_interval(degree + position - 1)
-            for position in positions
+            self.get_note(degree + position, octave=octave) for position in positions
         ]
-        for _ in range(inversion):
-            notes = notes[1:] + [notes[0] + NOTES_PER_OCTAVE]
+        for _ in range(abs(inversion)):
+            if inversion < 0:
+                notes = notes[:-1] + [notes[-1] - NOTES_PER_OCTAVE]
+            else:
+                notes = notes[1:] + [notes[0] + NOTES_PER_OCTAVE]
         return Chord(notes)
 
     def get_triad(self, degree, octave=4, inversion=0) -> Chord:
         return self.get_chord(
-            positions=[1, 3, 5], degree=degree, octave=octave, inversion=inversion
+            positions=[0, 2, 4], degree=degree, octave=octave, inversion=inversion
         )
 
     def get_seventh(self, degree, octave=4, inversion=0) -> Chord:
         return self.get_chord(
-            positions=[1, 3, 5, 7], degree=degree, octave=octave, inversion=inversion
+            positions=[0, 2, 4, 6], degree=degree, octave=octave, inversion=inversion
         )
 
     def get_ninth(self, degree, octave=4, inversion=0) -> Chord:
         return self.get_chord(
-            positions=[1, 3, 5, 7, 9], degree=degree, octave=octave, inversion=inversion
+            positions=[0, 2, 4, 6, 8], degree=degree, octave=octave, inversion=inversion
         )
 
     def get_eleventh(self, degree, octave=4, inversion=0) -> Chord:
         return self.get_chord(
-            positions=[1, 3, 5, 7, 9, 11],
+            positions=[0, 2, 4, 6, 8, 10],
             degree=degree,
             octave=octave,
             inversion=inversion,
@@ -247,7 +256,7 @@ class Scale(abc.ABC):
 
     def get_thirteenth(self, degree, octave=4, inversion=0) -> Chord:
         return self.get_chord(
-            positions=[1, 3, 5, 7, 9, 11, 13],
+            positions=[0, 2, 4, 6, 8, 10, 12],
             degree=degree,
             octave=octave,
             inversion=inversion,
@@ -260,7 +269,7 @@ class Scale(abc.ABC):
         return f"{self.__class__.__name__}({pitch_class_str})"
 
 
-class MajorScale(Scale):
+class MajorKey(Key):
 
     _intervals = [0, 2, 4, 5, 7, 9, 11]
 
@@ -269,7 +278,7 @@ class MajorScale(Scale):
         return self._intervals
 
 
-class MinorScale(Scale):
+class MinorKey(Key):
 
     _intervals = [0, 2, 3, 5, 7, 8, 10]
 
