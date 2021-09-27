@@ -1,7 +1,5 @@
 # m00sic
 
-Automatically generating music without data!
-
 ## Getting started
 
 Install Magenta and create a virtual environment.
